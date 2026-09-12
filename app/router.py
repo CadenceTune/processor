@@ -1,27 +1,20 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.service import process_music_bpm
+from services.music_processor_service import MusicProcessorService
 
-router = APIRouter()
+router = APIRouter(prefix="/api/processor", tags=["processor"])
+music_processor_service = MusicProcessorService()
 
-class BpmAnalyzeRequest(BaseModel):
-    youtube_video_id: str
-    title: str
-    artist: str
+class PlaylistRequest(BaseModel):
+    playlist_url: str  # Java에서 보내는 requestBody 키 "playlist_url"과 일치
 
-class BpmAnalyzeResponse(BaseModel):
-    youtube_video_id: str
-    bpm: int
-    source: str
-
-@router.post("/analyze", response_model=BpmAnalyzeResponse)
-def analyze_bpm(req: BpmAnalyzeRequest):
+@router.post("/playlist")
+def get_playlist_tracks(request: PlaylistRequest):
     try:
-        bpm, source = process_music_bpm(req.youtube_video_id, req.title, req.artist)
-        return BpmAnalyzeResponse(
-            youtube_video_id=req.youtube_video_id,
-            bpm=bpm,
-            source=source
-        )
+        tracks = music_processor_service.fetch_playlist_tracks(request.playlist_url)
+        return {
+            "status": "success",
+            "tracks": tracks
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
